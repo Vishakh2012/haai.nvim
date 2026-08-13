@@ -6,9 +6,6 @@ function M.ask(prompt, selection)
   -- `prompt`     = what the user typed
   -- `selection`  = visually selected code, if any
 
-  print("Selected code:")
-  print(selection or "No selection")
-
   return {
     prompt = prompt,
     selection = selection,
