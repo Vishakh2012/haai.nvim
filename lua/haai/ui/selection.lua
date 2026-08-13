@@ -1,16 +1,6 @@
 local M = {}
 
-local visual_modes = {
-  v = true,
-  V = true,
-  ["\22"] = true,
-}
-
 function M.get()
-  if not visual_modes[vim.fn.mode()] then
-    return nil
-  end
-
   local start_pos = vim.fn.getpos("v")
   local end_pos = vim.fn.getpos(".")
 
@@ -20,7 +10,7 @@ function M.get()
   local end_row = end_pos[2]
   local end_col = end_pos[3]
 
-  -- Handle backwards visual selections.
+  -- Handle backwards selections.
   if start_row > end_row
     or (start_row == end_row and start_col > end_col)
   then
