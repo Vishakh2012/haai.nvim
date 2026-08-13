@@ -97,20 +97,39 @@ local function submit()
 
     vim.bo[state.buf].modifiable = true
 
+    local lines = {
+        result.prompt,
+        "",
+    }
+
+    if result.selection and result.selection ~= "" then
+        table.insert(lines, "selected:")
+        table.insert(lines, "")
+
+        for line in result.selection:gmatch("[^\r\n]+") do
+            table.insert(lines, line)
+        end
+
+        table.insert(lines, "")
+    end
+
+    table.insert(lines, "haai:")
+    table.insert(lines, "")
+    table.insert(lines, result.response)
+
+    vim.bo[state.buf].modifiable = true
+
     vim.api.nvim_buf_set_lines(
         state.buf,
         0,
         -1,
         false,
-        {
-            result.prompt,
-            "",
-            "haai:",
-            "",
-            result.response,
-        }
+        lines
     )
 
+    vim.bo[state.buf].modifiable = false
+
+    update_size()
     vim.bo[state.buf].modifiable = false
 
     update_size()
