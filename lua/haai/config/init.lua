@@ -1,14 +1,18 @@
 local M = {}
 
-function M.ask(prompt)
-  local user_prompt = "you boii: " .. prompt
+function M.ask(prompt, selection)
+  -- This is where your actual AI configuration will eventually go.
+  --
+  -- `prompt`     = what the user typed
+  -- `selection`  = visually selected code, if any
 
-  -- Temporary model response
-  local response = "hello world"
+  print("Selected code:")
+  print(selection or "No selection")
 
   return {
-    prompt = user_prompt,
-    response = response,
+    prompt = prompt,
+    selection = selection,
+    response = "hello world",
   }
 end
 
