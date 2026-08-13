@@ -5,39 +5,39 @@ local state = {
   win = nil,
 }
 
-local function get_small_size()
-  return {
-    width = math.floor(vim.o.columns * 0.45),
-    height = 3,
-  }
+local function get_width()
+  -- Leave a little space on both sides.
+  return math.floor(vim.o.columns * 0.8)
 end
 
-local function get_large_size()
-  return {
-    width = math.floor(vim.o.columns * 0.75),
-    height = math.floor(vim.o.lines * 0.65),
-  }
+local function get_max_height()
+  return math.floor(vim.o.lines * 0.5)
 end
 
 local function get_position(width, height)
-  return {
-    row = math.floor((vim.o.lines - height) / 2),
-    col = math.floor((vim.o.columns - width) / 2),
-  }
-end
+  local cursor = vim.api.nvim_win_get_cursor(0)
 
-local function resize(width, height)
-  local position = get_position(width, height)
+  local cursor_row = cursor[1] - 1
+  local cursor_col = cursor[2]
 
-  vim.api.nvim_win_set_config(state.win, {
-    relative = "editor",
-    width = width,
-    height = height,
-    row = position.row,
-    col = position.col,
-    style = "minimal",
-    border = "rounded",
-  })
+  -- Put the window one line above the cursor.
+  local row = cursor_row - height
+
+  -- If there isn't enough space above, put it below.
+  if row < 0 then
+    row = cursor_row + 1
+  end
+
+  -- Keep the window horizontally around the cursor.
+  local col = cursor_col - math.floor(width / 2)
+
+  col = math.max(0, col)
+
+  if col + width > vim.o.columns then
+    col = vim.o.columns - width
+  end
+
+  return row, col
 end
 
 local function close()
@@ -47,6 +47,32 @@ local function close()
 
   state.win = nil
   state.buf = nil
+end
+
+local function update_size()
+  if not state.win or not vim.api.nvim_win_is_valid(state.win) then
+    return
+  end
+
+  local width = get_width()
+  local max_height = get_max_height()
+
+  local line_count = vim.api.nvim_buf_line_count(state.buf)
+
+  -- Minimum 1 line, maximum half the screen.
+  local height = math.max(1, math.min(line_count, max_height))
+
+  local row, col = get_position(width, height)
+
+  vim.api.nvim_win_set_config(state.win, {
+    relative = "editor",
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    style = "minimal",
+    border = "rounded",
+  })
 end
 
 local function submit()
@@ -69,10 +95,6 @@ local function submit()
   local config = require("haai.config")
   local result = config.ask(prompt)
 
-  local size = get_large_size()
-
-  resize(size.width, size.height)
-
   vim.bo[state.buf].modifiable = true
 
   vim.api.nvim_buf_set_lines(
@@ -91,6 +113,8 @@ local function submit()
 
   vim.bo[state.buf].modifiable = false
 
+  update_size()
+
   vim.keymap.set("n", "q", close, {
     buffer = state.buf,
     silent = true,
@@ -100,6 +124,9 @@ local function submit()
     buffer = state.buf,
     silent = true,
   })
+
+  -- Start at the beginning of the response.
+  vim.api.nvim_win_set_cursor(state.win, { 1, 0 })
 end
 
 function M.open()
@@ -108,21 +135,26 @@ function M.open()
     return
   end
 
-  local size = get_small_size()
-  local position = get_position(size.width, size.height)
+  local width = get_width()
+
+  -- Initially exactly one line.
+  local height = 1
+
+  local row, col = get_position(width, height)
 
   state.buf = vim.api.nvim_create_buf(false, true)
 
   vim.bo[state.buf].buftype = "nofile"
   vim.bo[state.buf].bufhidden = "wipe"
   vim.bo[state.buf].swapfile = false
+  vim.bo[state.buf].filetype = "haai"
 
   state.win = vim.api.nvim_open_win(state.buf, true, {
     relative = "editor",
-    width = size.width,
-    height = size.height,
-    row = position.row,
-    col = position.col,
+    width = width,
+    height = height,
+    row = row,
+    col = col,
     style = "minimal",
     border = "rounded",
   })
