@@ -83,7 +83,7 @@ local function submit()
         false
     )
 
-    local prompt = table.concat(lines, " ")
+    local prompt = table.concat(lines, " use as less words as possible and be as concise as possible.")
     prompt = vim.trim(prompt)
 
     if prompt == "" then
