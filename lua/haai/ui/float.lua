@@ -59,23 +59,27 @@ local function update_size()
     local width = get_width()
     local max_height = get_max_height()
 
-    vim.api.nvim_win_set_width(state.win, width)
+    local line_count = vim.api.nvim_buf_line_count(state.buf)
 
-    -- Calculate the number of screen lines after wrapping.
-    local screen_height = vim.api.nvim_win_text_height(
-        state.win,
-        {
-            start_row = 0,
-            end_row = -1,
-            start_vcol = 0,
-            end_vcol = -1,
-        }
-    ).all
+    -- Estimate wrapped lines for each buffer line.
+    local wrapped_lines = 0
 
-    -- Minimum 1 line, maximum half the screen.
+    for i = 1, line_count do
+        local line = vim.api.nvim_buf_get_lines(
+            state.buf,
+            i - 1,
+            i,
+            false
+        )[1] or ""
+
+        -- At least one screen line per buffer line.
+        wrapped_lines = wrapped_lines
+            + math.max(1, math.ceil(vim.fn.strdisplaywidth(line) / width))
+    end
+
     local height = math.max(
         1,
-        math.min(screen_height, max_height)
+        math.min(wrapped_lines, max_height)
     )
 
     local row, col = get_position(width, height)
