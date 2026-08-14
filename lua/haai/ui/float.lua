@@ -1,12 +1,13 @@
-local M = {}
+local m = {}
 
 local state = {
     buf = nil,
     win = nil,
+    selection = nil
 }
 
 local function get_width()
-    -- Leave a little space on both sides.
+    -- leave a little space on both sides.
     return math.floor(vim.o.columns * 0.8)
 end
 
@@ -20,15 +21,15 @@ local function get_position(width, height)
     local cursor_row = cursor[1] - 1
     local cursor_col = cursor[2]
 
-    -- Put the window one line above the cursor.
+    -- put the window one line above the cursor.
     local row = cursor_row - height
 
-    -- If there isn't enough space above, put it below.
+    -- if there isn't enough space above, put it below.
     if row < 0 then
         row = cursor_row + 1
     end
 
-    -- Keep the window horizontally around the cursor.
+    -- keep the window horizontally around the cursor.
     local col = cursor_col - math.floor(width / 2)
 
     col = math.max(0, col)
@@ -59,7 +60,7 @@ local function update_size()
 
     local line_count = vim.api.nvim_buf_line_count(state.buf)
 
-    -- Minimum 1 line, maximum half the screen.
+    -- minimum 1 line, maximum half the screen.
     local height = math.max(1, math.min(line_count, max_height))
 
     local row, col = get_position(width, height)
@@ -74,8 +75,9 @@ local function update_size()
         border = "rounded",
     })
 end
+
 local function submit()
-    print("=== HAAI DEBUG: submit() ===")
+    print("=== haai debug: submit() ===")
 
     print("state.buf:", state.buf)
     print("state.win:", state.win)
@@ -99,19 +101,19 @@ local function submit()
     print("selection:", vim.inspect(state.selection))
 
     if prompt == "" then
-        print("HAAI DEBUG: empty prompt, returning")
+        print("haai debug: empty prompt, returning")
         return
     end
 
     vim.cmd("stopinsert")
 
-    print("HAAI DEBUG: loading config")
+    print("haai debug: loading config")
 
     local config = require("haai.config")
 
-    print("HAAI DEBUG: config loaded:", vim.inspect(config))
+    print("haai debug: config loaded:", vim.inspect(config))
 
-    print("HAAI DEBUG: calling config.ask()")
+    print("haai debug: calling config.ask()")
 
     print("state selection", state.selection)
     local response, err = config.ask(
@@ -119,22 +121,22 @@ local function submit()
         state.selection
     )
 
-    print("HAAI DEBUG: config.ask() returned")
+    print("haai debug: config.ask() returned")
     print("response:", vim.inspect(response))
     print("error:", vim.inspect(err))
 
     if not response then
-        print("HAAI DEBUG: request failed")
+        print("haai debug: request failed")
 
         vim.notify(
-            "HAAI error: " .. tostring(err),
-            vim.log.levels.ERROR
+            "haai error: " .. tostring(err),
+            vim.log.levels.error
         )
 
         return
     end
 
-    print("HAAI DEBUG: response received")
+    print("haai debug: response received")
 
     vim.bo[state.buf].modifiable = true
 
@@ -158,7 +160,7 @@ local function submit()
     table.insert(output_lines, "")
     table.insert(output_lines, response)
 
-    print("HAAI DEBUG: writing response to buffer")
+    print("haai debug: writing response to buffer")
 
     vim.api.nvim_buf_set_lines(
         state.buf,
@@ -177,7 +179,7 @@ local function submit()
         silent = true,
     })
 
-    vim.keymap.set("n", "<Esc>", close, {
+    vim.keymap.set("n", "<esc>", close, {
         buffer = state.buf,
         silent = true,
     })
@@ -187,10 +189,12 @@ local function submit()
         { 1, 0 }
     )
 
-    print("=== HAAI DEBUG: submit() finished ===")
+    print("=== haai debug: submit() finished ===")
 end
 
-function M.open(selection)
+function m.open(selection)
+    print("HAAI float.open selection:", vim.inspect(selection))
+
     state.selection = selection
     if state.win and vim.api.nvim_win_is_valid(state.win) then
         vim.api.nvim_set_current_win(state.win)
@@ -199,7 +203,7 @@ function M.open(selection)
 
     local width = get_width()
 
-    -- Initially exactly one line.
+    -- initially exactly one line.
     local height = 1
 
     local row, col = get_position(width, height)
@@ -229,12 +233,12 @@ function M.open(selection)
         { "" }
     )
 
-    vim.keymap.set("i", "<CR>", submit, {
+    vim.keymap.set("i", "<cr>", submit, {
         buffer = state.buf,
         silent = true,
     })
 
-    vim.keymap.set({ "n", "i" }, "<Esc>", close, {
+    vim.keymap.set({ "n", "i" }, "<esc>", close, {
         buffer = state.buf,
         silent = true,
     })
@@ -242,4 +246,4 @@ function M.open(selection)
     vim.cmd("startinsert")
 end
 
-return M
+return m
