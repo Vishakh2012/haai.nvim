@@ -77,11 +77,6 @@ local function update_size()
 end
 
 local function submit()
-    print("=== haai debug: submit() ===")
-
-    print("state.buf:", state.buf)
-    print("state.win:", state.win)
-
     local lines = vim.api.nvim_buf_get_lines(
         state.buf,
         0,
@@ -89,16 +84,12 @@ local function submit()
         false
     )
 
-    print("input lines:")
     for i, line in ipairs(lines) do
         print("  [" .. i .. "] " .. line)
     end
 
     local prompt = table.concat(lines, "\n")
     prompt = vim.trim(prompt)
-
-    print("prompt:", vim.inspect(prompt))
-    print("selection:", vim.inspect(state.selection))
 
     if prompt == "" then
         print("haai debug: empty prompt, returning")
@@ -107,23 +98,11 @@ local function submit()
 
     vim.cmd("stopinsert")
 
-    print("haai debug: loading config")
-
     local config = require("haai.config")
-
-    print("haai debug: config loaded:", vim.inspect(config))
-
-    print("haai debug: calling config.ask()")
-
-    print("state selection", state.selection)
     local response, err = config.ask(
         prompt,
         state.selection
     )
-
-    print("haai debug: config.ask() returned")
-    print("response:", vim.inspect(response))
-    print("error:", vim.inspect(err))
 
     if not response then
         print("haai debug: request failed")
@@ -136,31 +115,30 @@ local function submit()
         return
     end
 
-    print("haai debug: response received")
-
     vim.bo[state.buf].modifiable = true
 
-    local output_lines = {
-        prompt,
-        "",
-    }
+    local function split_lines(text)
+        local lines = {}
 
-    if state.selection and state.selection ~= "" then
-        table.insert(output_lines, "selected:")
-        table.insert(output_lines, "")
-
-        for line in state.selection:gmatch("[^\r\n]+") do
-            table.insert(output_lines, line)
+        for line in (text .. "\n"):gmatch("(.-)\r?\n") do
+            table.insert(lines, line)
         end
 
-        table.insert(output_lines, "")
+        return lines
     end
 
+    local output_lines = {}
+
+    -- Prompt
+    vim.list_extend(output_lines, split_lines(prompt))
+
+    table.insert(output_lines, "")
+
+    -- Response
     table.insert(output_lines, "haai:")
     table.insert(output_lines, "")
-    table.insert(output_lines, response)
 
-    print("haai debug: writing response to buffer")
+    vim.list_extend(output_lines, split_lines(response))
 
     vim.api.nvim_buf_set_lines(
         state.buf,
@@ -171,7 +149,6 @@ local function submit()
     )
 
     vim.bo[state.buf].modifiable = false
-
     update_size()
 
     vim.keymap.set("n", "q", close, {
@@ -188,13 +165,9 @@ local function submit()
         state.win,
         { 1, 0 }
     )
-
-    print("=== haai debug: submit() finished ===")
 end
 
 function m.open(selection)
-    print("HAAI float.open selection:", vim.inspect(selection))
-
     state.selection = selection
     if state.win and vim.api.nvim_win_is_valid(state.win) then
         vim.api.nvim_set_current_win(state.win)
