@@ -93,20 +93,28 @@ local function submit()
     vim.cmd("stopinsert")
 
     local config = require("haai.config")
-    local result = config.ask(prompt, state.selection)
+    local response, err = config.ask(prompt, state.selection)
+
+    if not response then
+        vim.notify(
+            "HAAI: " .. tostring(err),
+            vim.log.levels.ERROR
+        )
+        return
+    end
 
     vim.bo[state.buf].modifiable = true
 
     local lines = {
-        result.prompt,
+        prompt,
         "",
     }
 
-    if result.selection and result.selection ~= "" then
+    if state.selection and state.selection ~= "" then
         table.insert(lines, "selected:")
         table.insert(lines, "")
 
-        for line in result.selection:gmatch("[^\r\n]+") do
+        for line in state.selection:gmatch("[^\r\n]+") do
             table.insert(lines, line)
         end
 
@@ -115,8 +123,7 @@ local function submit()
 
     table.insert(lines, "haai:")
     table.insert(lines, "")
-    table.insert(lines, result.response)
-
+    table.insert(lines, response)
     vim.bo[state.buf].modifiable = true
 
     vim.api.nvim_buf_set_lines(
