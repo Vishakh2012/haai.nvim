@@ -113,6 +113,7 @@ local function submit()
 
     print("HAAI DEBUG: calling config.ask()")
 
+    print("state selection", state.selection)
     local response, err = config.ask(
         prompt,
         state.selection
