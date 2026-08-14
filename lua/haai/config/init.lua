@@ -1,16 +1,19 @@
 local M = {}
 
-function M.ask(prompt, selection)
-  -- This is where your actual AI configuration will eventually go.
-  --
-  -- `prompt`     = what the user typed
-  -- `selection`  = visually selected code, if any
+M.options = {}
 
-  return {
-    prompt = prompt,
-    selection = selection,
-    response = "hello world",
-  }
+function M.setup(opts)
+  M.options = vim.tbl_deep_extend(
+    "force",
+    M.options,
+    opts or {}
+  )
+
+  require("haai.model").setup(M.options)
+end
+
+function M.ask(prompt, selection)
+  return require("haai.model").ask(prompt, selection)
 end
 
 return M
