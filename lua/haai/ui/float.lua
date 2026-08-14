@@ -74,8 +74,12 @@ local function update_size()
         border = "rounded",
     })
 end
-
 local function submit()
+    print("=== HAAI DEBUG: submit() ===")
+
+    print("state.buf:", state.buf)
+    print("state.win:", state.win)
+
     local lines = vim.api.nvim_buf_get_lines(
         state.buf,
         0,
@@ -83,60 +87,86 @@ local function submit()
         false
     )
 
-    local prompt = table.concat(lines, " use as less words as possible and be as concise as possible.")
+    print("input lines:")
+    for i, line in ipairs(lines) do
+        print("  [" .. i .. "] " .. line)
+    end
+
+    local prompt = table.concat(lines, "\n")
     prompt = vim.trim(prompt)
 
+    print("prompt:", vim.inspect(prompt))
+    print("selection:", vim.inspect(state.selection))
+
     if prompt == "" then
+        print("HAAI DEBUG: empty prompt, returning")
         return
     end
 
     vim.cmd("stopinsert")
 
+    print("HAAI DEBUG: loading config")
+
     local config = require("haai.config")
-    local response, err = config.ask(prompt, state.selection)
+
+    print("HAAI DEBUG: config loaded:", vim.inspect(config))
+
+    print("HAAI DEBUG: calling config.ask()")
+
+    local response, err = config.ask(
+        prompt,
+        state.selection
+    )
+
+    print("HAAI DEBUG: config.ask() returned")
+    print("response:", vim.inspect(response))
+    print("error:", vim.inspect(err))
 
     if not response then
+        print("HAAI DEBUG: request failed")
+
         vim.notify(
-            "HAAI: " .. tostring(err),
+            "HAAI error: " .. tostring(err),
             vim.log.levels.ERROR
         )
+
         return
     end
 
+    print("HAAI DEBUG: response received")
+
     vim.bo[state.buf].modifiable = true
 
-    local lines = {
+    local output_lines = {
         prompt,
         "",
     }
 
     if state.selection and state.selection ~= "" then
-        table.insert(lines, "selected:")
-        table.insert(lines, "")
+        table.insert(output_lines, "selected:")
+        table.insert(output_lines, "")
 
         for line in state.selection:gmatch("[^\r\n]+") do
-            table.insert(lines, line)
+            table.insert(output_lines, line)
         end
 
-        table.insert(lines, "")
+        table.insert(output_lines, "")
     end
 
-    table.insert(lines, "haai:")
-    table.insert(lines, "")
-    table.insert(lines, response)
-    vim.bo[state.buf].modifiable = true
+    table.insert(output_lines, "haai:")
+    table.insert(output_lines, "")
+    table.insert(output_lines, response)
+
+    print("HAAI DEBUG: writing response to buffer")
 
     vim.api.nvim_buf_set_lines(
         state.buf,
         0,
         -1,
         false,
-        lines
+        output_lines
     )
 
-    vim.bo[state.buf].modifiable = false
-
-    update_size()
     vim.bo[state.buf].modifiable = false
 
     update_size()
@@ -151,8 +181,12 @@ local function submit()
         silent = true,
     })
 
-    -- Start at the beginning of the response.
-    vim.api.nvim_win_set_cursor(state.win, { 1, 0 })
+    vim.api.nvim_win_set_cursor(
+        state.win,
+        { 1, 0 }
+    )
+
+    print("=== HAAI DEBUG: submit() finished ===")
 end
 
 function M.open(selection)
