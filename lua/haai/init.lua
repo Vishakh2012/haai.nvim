@@ -1,15 +1,11 @@
 local M = {}
 
 function M.setup(opts)
-  opts = opts or {}
-
-  -- Configuration will go here later.
+    require("haai.config").setup(opts)
 end
 
-function M.open()
-  local selection = require("haai.ui.selection").get()
-
-  require("haai.ui.float").open(selection)
+function M.ask(prompt, selection)
+    return require("haai.config").ask(prompt, selection)
 end
 
 return M
