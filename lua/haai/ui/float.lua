@@ -3,11 +3,11 @@ local m = {}
 local state = {
     buf = nil,
     win = nil,
-    selection = nil
+    selection = nil,
 }
 
 local function get_width()
-    -- leave a little space on both sides.
+    -- Leave a little space on both sides.
     return math.floor(vim.o.columns * 0.8)
 end
 
@@ -21,15 +21,15 @@ local function get_position(width, height)
     local cursor_row = cursor[1] - 1
     local cursor_col = cursor[2]
 
-    -- put the window one line above the cursor.
+    -- Put the window one line above the cursor.
     local row = cursor_row - height
 
-    -- if there isn't enough space above, put it below.
+    -- If there isn't enough space above, put it below.
     if row < 0 then
         row = cursor_row + 1
     end
 
-    -- keep the window horizontally around the cursor.
+    -- Keep the window horizontally around the cursor.
     local col = cursor_col - math.floor(width / 2)
 
     col = math.max(0, col)
@@ -48,6 +48,7 @@ local function close()
 
     state.win = nil
     state.buf = nil
+    state.selection = nil
 end
 
 local function update_size()
@@ -58,10 +59,24 @@ local function update_size()
     local width = get_width()
     local max_height = get_max_height()
 
-    local line_count = vim.api.nvim_buf_line_count(state.buf)
+    vim.api.nvim_win_set_width(state.win, width)
 
-    -- minimum 1 line, maximum half the screen.
-    local height = math.max(1, math.min(line_count, max_height))
+    -- Calculate the number of screen lines after wrapping.
+    local screen_height = vim.api.nvim_win_text_height(
+        state.win,
+        {
+            start_row = 0,
+            end_row = -1,
+            start_vcol = 0,
+            end_vcol = -1,
+        }
+    ).all
+
+    -- Minimum 1 line, maximum half the screen.
+    local height = math.max(
+        1,
+        math.min(screen_height, max_height)
+    )
 
     local row, col = get_position(width, height)
 
@@ -99,6 +114,7 @@ local function submit()
     vim.cmd("stopinsert")
 
     local config = require("haai.config")
+
     local response, err = config.ask(
         prompt,
         state.selection
@@ -109,7 +125,7 @@ local function submit()
 
         vim.notify(
             "haai error: " .. tostring(err),
-            vim.log.levels.error
+            vim.log.levels.ERROR
         )
 
         return
@@ -130,7 +146,10 @@ local function submit()
     local output_lines = {}
 
     -- Prompt
-    vim.list_extend(output_lines, split_lines(prompt))
+    vim.list_extend(
+        output_lines,
+        split_lines(prompt)
+    )
 
     table.insert(output_lines, "")
 
@@ -138,7 +157,10 @@ local function submit()
     table.insert(output_lines, "haai:")
     table.insert(output_lines, "")
 
-    vim.list_extend(output_lines, split_lines(response))
+    vim.list_extend(
+        output_lines,
+        split_lines(response)
+    )
 
     vim.api.nvim_buf_set_lines(
         state.buf,
@@ -149,6 +171,7 @@ local function submit()
     )
 
     vim.bo[state.buf].modifiable = false
+
     update_size()
 
     vim.keymap.set("n", "q", close, {
@@ -156,7 +179,7 @@ local function submit()
         silent = true,
     })
 
-    vim.keymap.set("n", "<esc>", close, {
+    vim.keymap.set("n", "<Esc>", close, {
         buffer = state.buf,
         silent = true,
     })
@@ -169,6 +192,7 @@ end
 
 function m.open(selection)
     state.selection = selection
+
     if state.win and vim.api.nvim_win_is_valid(state.win) then
         vim.api.nvim_set_current_win(state.win)
         return
@@ -176,7 +200,7 @@ function m.open(selection)
 
     local width = get_width()
 
-    -- initially exactly one line.
+    -- Initially exactly one line.
     local height = 1
 
     local row, col = get_position(width, height)
@@ -188,15 +212,24 @@ function m.open(selection)
     vim.bo[state.buf].swapfile = false
     vim.bo[state.buf].filetype = "haai"
 
-    state.win = vim.api.nvim_open_win(state.buf, true, {
-        relative = "editor",
-        width = width,
-        height = height,
-        row = row,
-        col = col,
-        style = "minimal",
-        border = "rounded",
-    })
+    state.win = vim.api.nvim_open_win(
+        state.buf,
+        true,
+        {
+            relative = "editor",
+            width = width,
+            height = height,
+            row = row,
+            col = col,
+            style = "minimal",
+            border = "rounded",
+        }
+    )
+
+    -- Wrap long lines inside the floating window.
+    vim.wo[state.win].wrap = true
+    vim.wo[state.win].linebreak = true
+    vim.wo[state.win].breakindent = true
 
     vim.api.nvim_buf_set_lines(
         state.buf,
@@ -206,12 +239,12 @@ function m.open(selection)
         { "" }
     )
 
-    vim.keymap.set("i", "<cr>", submit, {
+    vim.keymap.set("i", "<CR>", submit, {
         buffer = state.buf,
         silent = true,
     })
 
-    vim.keymap.set({ "n", "i" }, "<esc>", close, {
+    vim.keymap.set({ "n", "i" }, "<Esc>", close, {
         buffer = state.buf,
         silent = true,
     })
