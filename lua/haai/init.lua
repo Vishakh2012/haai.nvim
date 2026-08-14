@@ -9,6 +9,8 @@ function M.ask(prompt, selection)
 end
 
 function M.open(selection)
+    print("HAAI: M.open()")
+    print("HAAI: selection =", vim.inspect(selection))
     require("haai.ui.float").open(selection)
 end
 
