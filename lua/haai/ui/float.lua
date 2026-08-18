@@ -1,6 +1,8 @@
 local state = require("haai.ui.float.state").state
 local window = require("haai.ui.float.window")
 local input = require("haai.ui.float.input")
+local input_field_ui = require("haai.ui.float.input_field_ui")
+
 
 local M = {}
 
@@ -16,7 +18,7 @@ function M.open(selection)
 
     input.setup()
 
-    input.focus()
+    input_field_ui.focus()
 end
 
 return M
