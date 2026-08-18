@@ -1,19 +1,12 @@
 local state = require("haai.ui.float.state").state
+local input_field_ui = require("haai.ui.float.input_field_ui")
+local content = require("haai.ui.float.content")
 local window = require("haai.ui.float.window")
-local render = require("haai.ui.float.render")
 
 local M = {}
 
 function M.submit()
-    local lines = vim.api.nvim_buf_get_lines(
-        state.buf,
-        0,
-        -1,
-        false
-    )
-
-    local prompt = table.concat(lines, "\n")
-    prompt = vim.trim(prompt)
+    local prompt = input_field_ui.get_text()
 
     if prompt == "" then
         return
@@ -34,30 +27,38 @@ function M.submit()
             vim.log.levels.ERROR
         )
 
+        input_field_ui.focus()
         return
     end
 
-    render.set(
-        state.buf,
-        render.response(prompt, response)
-    )
+    content.append(prompt, response)
 
-    window.update_size()
+    -- Every question is independent.
+    input_field_ui.clear()
 
-    vim.keymap.set("n", "q", window.close, {
-        buffer = state.buf,
+    -- The initial selection only applies to the first query.
+    state.selection = nil
+
+    input_field_ui.focus()
+end
+
+function M.setup()
+    vim.keymap.set("i", "<CR>", M.submit, {
+        buffer = state.input_buf,
         silent = true,
     })
 
-    vim.keymap.set("n", "<Esc>", window.close, {
-        buffer = state.buf,
+    vim.keymap.set("n", "<CR>", function()
+        input_field_ui.focus()
+    end, {
+        buffer = state.input_buf,
         silent = true,
     })
 
-    vim.api.nvim_win_set_cursor(
-        state.win,
-        { 1, 0 }
-    )
+    vim.keymap.set({ "n", "i" }, "<Esc>", window.close, {
+        buffer = state.input_buf,
+        silent = true,
+    })
 end
 
 return M
