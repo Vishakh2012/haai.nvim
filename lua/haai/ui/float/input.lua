@@ -1,6 +1,5 @@
 local state = require("haai.ui.float.state").state
 local input_field_ui = require("haai.ui.float.input_field_ui")
-local content = require("haai.ui.float.content")
 local window = require("haai.ui.float.window")
 
 local M = {}
@@ -31,14 +30,60 @@ function M.submit()
         return
     end
 
-    content.append(prompt, response)
+    -- Outer window buffer.
+    vim.bo[state.content_buf].modifiable = true
 
-    -- Every question is independent.
+    local function split_lines(text)
+        local lines = {}
+
+        for line in (text .. "\n"):gmatch("(.-)\r?\n") do
+            table.insert(lines, line)
+        end
+
+        return lines
+    end
+
+    local output_lines = {}
+
+    -- Previous/current query.
+    table.insert(output_lines, "You:")
+    table.insert(output_lines, "")
+
+    vim.list_extend(
+        output_lines,
+        split_lines(prompt)
+    )
+
+    table.insert(output_lines, "")
+
+    -- Response.
+    table.insert(output_lines, "HAAI:")
+    table.insert(output_lines, "")
+
+    vim.list_extend(
+        output_lines,
+        split_lines(response)
+    )
+
+    table.insert(output_lines, "")
+
+    vim.api.nvim_buf_set_lines(
+        state.content_buf,
+        -1,
+        -1,
+        false,
+        output_lines
+    )
+
+    vim.bo[state.content_buf].modifiable = false
+
+    -- Clear input for the next question.
     input_field_ui.clear()
 
-    -- The initial selection only applies to the first query.
+    -- Selection belongs only to the first request.
     state.selection = nil
 
+    -- Return focus to input.
     input_field_ui.focus()
 end
 
